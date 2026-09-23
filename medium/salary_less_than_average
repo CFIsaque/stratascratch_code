@@ -1,0 +1,30 @@
+"Write a query to get the list of managers whose salary is less than twice the average salary of employees reporting to them. For these managers, output their ID, salary and the average salary of employees reporting to them"
+
+tables: map_employee_hierarchy e dim_employee
+
+My solution breaks the problem down into three steps:
+
+**First**, I create a table containing each manager's salary by joining `map_employee_hierarchy` with `dim_employee` using the manager's employee ID.
+
+**Second**, I calculate the average salary of the employees reporting to each manager. I use the `manager_empl_id` as the department/group identifier and calculate the average employee salary for each manager.
+
+**Third**, I join the two CTEs using `manager_id` and filter for managers whose salary is less than twice the average salary of their employees.
+
+
+with manager as (select distinct h.manager_empl_id as manager_id, d.salary as manager_salary
+from map_employee_hierarchy h
+left join dim_employee d
+on h.manager_empl_id = d.empl_id),
+
+dp as (select distinct h.manager_empl_id as dp_id, avg(d.salary) as employee_salary
+from map_employee_hierarchy h
+left join dim_employee d
+on h.empl_id = d.empl_id
+where manager_empl_id is not null
+group by h.manager_empl_id)
+
+select manager_id, manager_salary, employee_salary
+from manager m
+left join dp d
+on manager_id = dp_id
+where manager_salary < 2 * employee_salary
